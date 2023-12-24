@@ -1,0 +1,3 @@
+[submodule "ext/artificial_neural_network"]
+	path = ext/artificial_neural_network
+	url = https://github.com/OleksandrNemchenko/artificial_neural_network.git

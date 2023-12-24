@@ -25,6 +25,14 @@
   <ItemGroup>
     <ClCompile Include="geneticAlgorithm.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ext\artificial_neural_network\artificial_neural_network\artificial_neural_network.vcxproj">
+      <Project>{ac78b591-d274-4cb7-a92b-1a397026b34d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ext\json\JSON.vcxproj">
+      <Project>{856bcdd5-4f97-4fbd-9bcf-f247a26f00ce}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
