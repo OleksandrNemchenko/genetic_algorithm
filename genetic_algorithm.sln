@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test", "test\test.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "genetic_algorithm", "genetic_algorithm\genetic_algorithm.vcxproj", "{5101ED51-8504-46F0-A77E-7460C98DD07C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JSON", "ext\json\JSON.vcxproj", "{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{5101ED51-8504-46F0-A77E-7460C98DD07C}.Release|x64.Build.0 = Release|x64
 		{5101ED51-8504-46F0-A77E-7460C98DD07C}.Release|x86.ActiveCfg = Release|Win32
 		{5101ED51-8504-46F0-A77E-7460C98DD07C}.Release|x86.Build.0 = Release|Win32
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Debug|x64.ActiveCfg = Debug|x64
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Debug|x64.Build.0 = Debug|x64
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Debug|x86.ActiveCfg = Debug|Win32
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Debug|x86.Build.0 = Debug|Win32
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Release|x64.ActiveCfg = Release|x64
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Release|x64.Build.0 = Release|x64
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Release|x86.ActiveCfg = Release|Win32
+		{856BCDD5-4F97-4FBD-9BCF-F247A26F00CE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
