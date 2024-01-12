@@ -35,3 +35,6 @@
 .vs
 *.vcxproj.user
 out.*
+
+# Generated files
+genetic_algorithm/kernel_code.cpp

@@ -4,17 +4,53 @@
     <Filter Include="include">
       <UniqueIdentifier>{b1ce2998-aeb3-4fdb-b431-67b74bcfc3d5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="include\genetic_algorithm">
+    <Filter Include="include\artificial_neural_network">
       <UniqueIdentifier>{60758c26-6aed-4529-add2-425cc4bf6fe1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="kernel">
+      <UniqueIdentifier>{0e46f3ee-5c18-4397-8299-0e79c38fc987}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geneticAlgorithmImpl.hpp" />
-    <ClInclude Include="include\genetic_algorithm\genetic_algorithm.hpp">
-      <Filter>include\genetic_algorithm</Filter>
+    <ClInclude Include="include\artificial_neural_network\genetic_algorithm.hpp">
+      <Filter>include\artificial_neural_network</Filter>
+    </ClInclude>
+    <ClInclude Include="kernel\kernelCppHidings.hpp">
+      <Filter>kernel</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="geneticAlgorithm.cpp" />
+    <ClCompile Include="initGeneticAlgorithm.cpp" />
+    <ClCompile Include="calcGeneticAlgorithm.cpp" />
+    <ClCompile Include="kernel\kernelCode.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\kernelCodePattern.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\geneticAlgSrc.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\enulator.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\tinyMTSrc.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\definesSrc.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+    <ClCompile Include="kernel\bitonicSortSrc.cpp">
+      <Filter>kernel</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="kernel\makeKernelCode.bat">
+      <Filter>kernel</Filter>
+    </None>
+    <None Include="kernel\makeKernelCode.py">
+      <Filter>kernel</Filter>
+    </None>
   </ItemGroup>
 </Project>
