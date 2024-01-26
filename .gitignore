@@ -37,4 +37,4 @@
 out.*
 
 # Generated files
-genetic_algorithm/kernel_code.cpp
+genetic_algorithm/kernel/kernelCode.cpp

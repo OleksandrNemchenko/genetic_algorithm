@@ -27,11 +27,9 @@ bool TestCharSymbol()
         ukrBig.emplace(smb);
     }
 
-    annStr->AddP2PNeuronsLayer();
-    annStr->AddFullyConnectedNeuronsLayer();
-    annStr->AddFullyConnectedNeuronsLayer();
-    annStr->AddFullyConnectedNeuronsLayer(outsAmount);
-    annStr->AddOutputLayer();
+    annStr->AddFullyConnectedNeuronsLayer(artificial_neural_network::net_structure::RELU);
+    annStr->AddFullyConnectedNeuronsLayer(artificial_neural_network::net_structure::RELU);
+    annStr->AddOutputLayer(artificial_neural_network::net_structure::SIGMOID);
 
     genetic_algorithm::test_datas testDatas;
     for (int smb = 0; smb <= 255; ++smb)
@@ -61,13 +59,22 @@ bool TestCharSymbol()
     nlohmann::json& fitnessFunction = settings["fitness function calculation"];
     fitnessFunction["function name"] = "TestCheck";
     fitnessFunction["reject level"] = testDatasAmount / 2;
-    fitnessFunction["stop level"] = testDatasAmount * 3;
+    fitnessFunction["stop level"] = testDatasAmount * 2 + ukrAll.size();
     fitnessFunction["source code"] = R"(
 (__global const TData* outputs, __global const TData* testData, const TOffset datasetsAmount)
 {
     TData sum = 0;
     for (TOffset i = 0; i < datasetsAmount; ++i, outputs += 2, testData += 2)
-        sum += (outputs[0] == testData[0] ? 2 : 0) + (outputs[1] == testData[1] ? 1 : 0);
+    {
+        const bool expectedIsUkr = testData[0] == 1;
+        const bool actualIsUkr   = outputs[0] > 0.5;
+
+        const bool expectedIsUkrBig = testData[1] == 1;
+        const bool actualIsUkrBig   = outputs[1] > 0.5;
+
+        sum += (expectedIsUkr == actualIsUkr ? 2 : 0) + (actualIsUkr && expectedIsUkrBig == actualIsUkrBig ? 1 : 0);
+    }
+
     return sum;
 };)";
 

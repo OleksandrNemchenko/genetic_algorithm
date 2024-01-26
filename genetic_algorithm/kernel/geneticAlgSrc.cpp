@@ -25,11 +25,15 @@ typedef union
 
 typedef struct
 {
+    uchar _activationFunction;
+    TOffset _layerNeuronPosition;
     TOffset _inputsAmount;
     TOffset _firstInputOff;
     TOffset _firstConfigOff;
     TOffset _stateOff;
 } SNeuron;
+
+typedef enum { UNSPECIFIED = 0, IDENTITY, SIGMOID, BINARY_STEP_PARAM, BINARY_STEP, IDENTITY_PARAM, TANH, RELU, RELU_PARAM, SOFTPLUS, ELU, ELU_PARAM, SELU, LRELU, SILU, GAUSSIAN, SOFTMAX, ACTIVATION_FUNCTIONS_AMOUNT } EActivationFunction;
 
 TOffset Index1of2(const TOffset index, const TOffset size1) { return index % size1; }
 TOffset Index2of2(const TOffset index, const TOffset size1) { return index / size1; }
@@ -242,27 +246,35 @@ __global const TData* ProcessNeuron
    )
 {
     const TOffset externalDirBit = ((TOffset)1) << (sizeof(TOffset) * 8 - 1);
+    const bool isSoftMax = neuron->_activationFunction == SOFTMAX;
 
     TOffset inputOffPtr = neuron->_firstInputOff;
     TData sum = 0;
+    TData softMaxNumerator = 0;
     config += neuron->_firstConfigOff;
-    for (TOffset i = 0; i < neuron->_inputsAmount; ++i, ++inputOffPtr)
+
+    for (TOffset i = 0; i < neuron->_inputsAmount; ++i, ++inputOffPtr, ++config)
     {
         const TOffset inputOff = inputsOffs[inputOffPtr];
         const bool isExternalInput = inputOff & externalDirBit;
         const TOffset unmaskedInputOff = inputOff & ~externalDirBit;
 
         const TData inputValue = isExternalInput ? inputs[unmaskedInputOff] : neuronsStates[unmaskedInputOff];
-        const TData curInputValue = inputValue * *config++;
+        const TData curInputValue = isSoftMax ? exp(inputValue) : (inputValue * *config);
         sum += curInputValue;
+
+        if (isSoftMax && i == neuron->_layerNeuronPosition)
+            softMaxNumerator = exp(inputValue);
     }
 
-    typedef enum { IDENTITY = 0, SIGMOID, BINARY_STEP_PARAM, BINARY_STEP, IDENTITY_PARAM, TANH, RELU, RELU_PARAM, SOFTPLUS, ELU, ELU_PARAM, SELU, LRELU, SILU, GAUSSIAN, ACTIVATION_FUNCTIONS_AMOUNT } EActivationFunction;
 #if TEST_GENETIC_ALGORITHM == 1
-    const EActivationFunction actFunct = *config++ == 0 ? IDENTITY : SIGMOID;
+    EActivationFunction actFunct = *config++ == 0 ? IDENTITY : SIGMOID;
 #else // TEST_GENETIC_ALGORITHM == 1
-    const EActivationFunction actFunct = (EActivationFunction)(abs((ulong)(*config++ * ACTIVATION_FUNCTIONS_AMOUNT)) % ACTIVATION_FUNCTIONS_AMOUNT);
+    EActivationFunction actFunct = (EActivationFunction)(abs((ulong)(*config++ * ACTIVATION_FUNCTIONS_AMOUNT)) % ACTIVATION_FUNCTIONS_AMOUNT);
 #endif // TEST_GENETIC_ALGORITHM == 1
+    
+    if (neuron->_activationFunction != UNSPECIFIED)
+        actFunct = (EActivationFunction)neuron->_activationFunction;
 
     const TData actFunctParam1 = *config++;
     const TData actFunctParam2 = *config++;
@@ -274,6 +286,7 @@ __global const TData* ProcessNeuron
     switch (actFunct)
     {
     case IDENTITY:          res = sum; break;
+    case UNSPECIFIED:
     case SIGMOID:           res = 1 / (1 + e_minus_sum); break;
     case BINARY_STEP_PARAM: res = (sum < actFunctParam1 ? 0 : 1); break;
     case BINARY_STEP:       res = (sum < 0 ? 0 : 1); break;
@@ -288,6 +301,7 @@ __global const TData* ProcessNeuron
     case LRELU:             res = (sum < 0 ? 0.01 * sum : sum); break;
     case SILU:              res = sum / (1 + e_minus_sum); break;
     case GAUSSIAN:          res = exp(-(sum * sum)); break;
+    case SOFTMAX:           res = softMaxNumerator / sum; break;
     default:                res = -1.7976931348623157e+308;
     }
 

@@ -196,7 +196,7 @@ extern std::vector<size_t> global_offset;   // global offset
 #define long4
 #define long8
 #define long16
-#define uchar
+#define uchar uint8_t
 #define uchar2
 #define uchar3
 #define uchar4
