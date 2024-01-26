@@ -19,9 +19,15 @@ using namespace std::string_literals;
 }
 
 CGeneticAlgorithmImpl::CGeneticAlgorithmImpl(const std::unique_ptr<net_structure>& netStructure, test_datas testDatas, const nlohmann::json& settings, bool startCalculationsAutomatically) :
-    _netStructure(*static_cast<CNetStructureImpl*>(netStructure.get())), _testDatas(std::move(testDatas)), _settings(settings),
-    _neurons(_netStructure._neurons), _inputsOffs (_netStructure._inputsOff)
+    _testDatas(std::move(testDatas)), _settings(settings)
 {
+    if (settings.contains("calc results"))
+        _netStructure = std::make_unique<CNetStructureImpl>(settings.at("calc results").at("data version 1").at("ann structure"));
+    else
+        _netStructure = std::make_unique<CNetStructureImpl>(netStructure);
+
+    _neurons = _netStructure->_neurons;
+    _inputsOffs = _netStructure->_inputsOff;
     _initFuture = std::async(std::launch::async, [this, startCalculationsAutomatically]() { Init(startCalculationsAutomatically); });
     _status = status::algorithm_init;
 }
@@ -72,7 +78,7 @@ void CGeneticAlgorithmImpl::CheckData()
             throw std::runtime_error("Input data has not to be empty");
         if (testDataIt->interpret_data.empty())
             throw std::runtime_error("Interpreting data has not to be empty");
-        if (testDataIt->inputs.size() != _netStructure.InputsAmount())
+        if (testDataIt->inputs.size() != _netStructure->InputsAmount())
             throw std::runtime_error("Inputs size in test data are not equal to the network inputs amount");
         if (testDataIt->interpret_data.size() != _testDatas.front().interpret_data.size())
             throw std::runtime_error("Interpreting data is not the same for all testing set");
@@ -101,12 +107,12 @@ void CGeneticAlgorithmImpl::CalculateAmounts()
 
     _generalNetsAmount = _initialStageAmount + _crossingoverStageAmount + _mutationsStageAmount;
 
-    _configsAmount = _netStructure.ConfigsAmount();
+    _configsAmount = _netStructure->ConfigsAmount();
     _netConfigsBytes = _configsAmount;
     _allNetsConfigsBytes = _generalNetsAmount * _netConfigsBytes;
 
-    _inputsPerNet = _netStructure.InputsAmount();
-    _outputsPerNet = _netStructure.OutputsAmount();
+    _inputsPerNet = _netStructure->InputsAmount();
+    _outputsPerNet = _netStructure->OutputsAmount();
 }
 
 void CGeneticAlgorithmImpl::InitPlatform()
@@ -275,7 +281,11 @@ void CGeneticAlgorithmImpl::InitCalculations()
 
     const nlohmann::json& fitnessCalcSettings = _settings["fitness function calculation"];
     _rejectFitnessFunctionLevel = fitnessCalcSettings["reject level"];
+    _saveFitnessFunctionLevel = fitnessCalcSettings["save level"];
     _stopFitnessFunctionLevel = fitnessCalcSettings["stop level"];
+
+    if (_settings.contains("calc results"))
+        InitState();
 }
 
 void CGeneticAlgorithmImpl::InitNeuralNetworkStructure()
@@ -311,7 +321,7 @@ void CGeneticAlgorithmImpl::InitNeuralNetworkStructure()
     InitBuffer(_inputsOffs, _inputsOffsCl, true, false);
     cl::copy(_inputsOffs.begin(), _inputsOffs.end(), _inputsOffsCl);
 
-    _neuronsStates.resize(_netStructure._statesSize * _generalNetsAmount * _testDatas.size());
+    _neuronsStates.resize(_netStructure->_statesSize * _generalNetsAmount * _testDatas.size());
     InitBuffer(_neuronsStates, _neuronsStatesCl, false, false);
 }
 
@@ -367,7 +377,7 @@ size_t CGeneticAlgorithmImpl::GlobalMemoryBytesRequirement()
 
 //    bytes += sizeof(data_type) * _testDatas.size() * (_testDatas.front().inputs.size() + _testDatas.front().interpret_data.size());
     
-//    bytes += sizeof(artificial_neural_network::CNetStructureImpl::TOffset) * (_netStructure.InputsAmount() + _netStructure.OutputsAmount());
+//    bytes += sizeof(artificial_neural_network::CNetStructureImpl::TOffset) * (_netStructure->InputsAmount() + _netStructure->OutputsAmount());
     return bytes;
 }
 
@@ -383,4 +393,50 @@ void CGeneticAlgorithmImpl::InitBuffer(T& vector, cl::Buffer& buffer, bool readO
 {
     assert(!vector.empty());
     buffer = cl::Buffer(vector.begin(), vector.end(), readOnly, useHostPtr);
+}
+
+nlohmann::json CGeneticAlgorithmImpl::export_calculation_result() noexcept
+{
+    nlohmann::json generalResult;
+    nlohmann::json& result = generalResult["data version 1"];
+
+    result["ann structure"] = _netStructure->Export();
+
+    {
+        std::lock_guard<std::mutex> configsToBeExportedLock(_configsToBeExportedMutex);
+        for (const TDatas& configs : _configsToBeExported)
+            result["configs"].emplace_back(nlohmann::json(configs));
+    }
+
+    return generalResult;
+}
+
+bool CGeneticAlgorithmImpl::has_calculation_result() noexcept
+{
+    std::lock_guard<std::mutex> configsToBeExportedLock(_configsToBeExportedMutex);
+
+    return !_configsToBeExported.empty();
+}
+
+void CGeneticAlgorithmImpl::InitState()
+{
+    if (!_settings.contains("calc results"))
+        return;
+
+    auto dst = _netConfigs.begin();
+    size_t i = 0;
+    for (const nlohmann::json& config : _settings.at("calc results").at("data version 1").at("configs"))
+    {
+        _netsToRandomize[i] = false;
+
+        assert(config.size() == _configsAmount);
+        for (const auto value : config)
+            *dst++ = value;
+        ++i;
+    }
+
+    cl::copy(_netsToRandomize.cbegin(), _netsToRandomize.cend(), _netsToRandomizeCl);
+    cl::copy(_netConfigs.cbegin(), _netConfigs.cend(), _netConfigsCl);
+
+    _allRandomNets = false;
 }

@@ -21,7 +21,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="initGeneticAlgorithm.cpp" />
+    <ClCompile Include="geneticAlgorithm.cpp" />
     <ClCompile Include="calcGeneticAlgorithm.cpp" />
     <ClCompile Include="kernel\kernelCode.cpp">
       <Filter>kernel</Filter>

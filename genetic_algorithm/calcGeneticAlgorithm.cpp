@@ -55,6 +55,8 @@ bool CGeneticAlgorithmImpl::CalcIteration()
             _status = status::calc_phase6;  Phase6_CalcFitnessFunct();
             _status = status::calc_phase7;  Phase7_SortNets();
             _status = status::calc_phase8;  Phase8_PrepareNets();
+
+            ExportGoodNetConfigs();
         }
         while (_bestFitnessFunction < _stopFitnessFunctionLevel && !_toStop);
 
@@ -425,7 +427,7 @@ void CGeneticAlgorithmImpl::Phase5_NetsCalculations()
 
     _phase5Call_NetsCalculations->operator()( cl::EnqueueArgs(cl::NDRange(_phase5Threads)),
         _netConfigsCl, _inputsOffsCl, _inputsCl, _outputsCl, _neuronsCl, _neuronsStatesCl,
-        _configsAmount, _generalNetsAmount, _testDatas.size(), _inputsPerNet, _outputsPerNet,  _netStructure._neurons.size(), _netStructure._statesSize,
+        _configsAmount, _generalNetsAmount, _testDatas.size(), _inputsPerNet, _outputsPerNet,  _netStructure->_neurons.size(), _netStructure->_statesSize,
         error);
     if (error != CL_SUCCESS)
         throw std::runtime_error("Phase 5 error : error code "s + std::to_string(error));
@@ -555,7 +557,7 @@ void CGeneticAlgorithmImpl::Phase8_PrepareNets()
             *dstTmp++ = *src++;
     }
 
-    if (netsToCopy < (firstBadNetPos - _initialWorst))
+    if (firstBadNetPos < _fitnessFunctOrder.size() && netsToCopy < (firstBadNetPos - _initialWorst))
     {
         for (i = 0; i < _initialWorst; ++i)
         {
@@ -579,4 +581,33 @@ void CGeneticAlgorithmImpl::Phase8_PrepareNets()
     cl::copy(netConfigsTmp.begin(), netConfigsTmp.end(), _netConfigsCl);
 
     cl::copy(_netsToRandomize.begin(), _netsToRandomize.end(), _netsToRandomizeCl);
+}
+
+void CGeneticAlgorithmImpl::ExportGoodNetConfigs()
+{
+    std::lock_guard<std::mutex> configsToBeExportedLock(_configsToBeExportedMutex);
+
+    _configsToBeExported.clear();
+
+    size_t net = 0;
+    for (const TFitnessFunctOrder fitnessFunctOrder : _fitnessFunctOrder)
+    {
+        if (fitnessFunctOrder.second < _saveFitnessFunctionLevel)
+            continue;
+
+        if (net >= _initialRandoms)
+            break;
+
+        auto src = _netConfigs.cbegin() + fitnessFunctOrder.first * _configsAmount;
+
+        TDatas netConfig(_configsAmount);
+        auto dst = netConfig.begin();
+
+        for (size_t i = 0; i < _configsAmount; ++i)
+            *dst++ = *src++;
+
+        _configsToBeExported.emplace_back(std::move(netConfig));
+
+        ++net;
+    }
 }

@@ -1,5 +1,7 @@
 ﻿
 #include <bitset>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <set>
 #include <thread>
@@ -10,7 +12,7 @@
 
 using namespace artificial_neural_network;
 
-bool TestCharSymbol()
+bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
 {
     constexpr size_t bits = 8;
     constexpr size_t outsAmount = 2;
@@ -27,9 +29,11 @@ bool TestCharSymbol()
         ukrBig.emplace(smb);
     }
 
-    annStr->AddFullyConnectedNeuronsLayer(artificial_neural_network::net_structure::RELU);
-    annStr->AddFullyConnectedNeuronsLayer(artificial_neural_network::net_structure::RELU);
-    annStr->AddOutputLayer(artificial_neural_network::net_structure::SIGMOID);
+    annStr->AddP2PNeuronsLayer();
+    annStr->AddFullyConnectedNeuronsLayer();
+    annStr->AddFullyConnectedNeuronsLayer();
+    annStr->AddFullyConnectedNeuronsLayer(outsAmount);
+    annStr->AddOutputLayer();
 
     genetic_algorithm::test_datas testDatas;
     for (int smb = 0; smb <= 255; ++smb)
@@ -48,6 +52,16 @@ bool TestCharSymbol()
 
     nlohmann::json settings;
 
+    if (std::filesystem::exists(genAlgCalcFile))
+    {
+        std::ifstream genAlgCalc(genAlgCalcFile);
+        std::string genAlgCalcStr{ std::istreambuf_iterator<char>(genAlgCalc), std::istreambuf_iterator<char>() };
+        if (genAlgCalc.is_open())
+            settings["calc results"] = nlohmann::json::parse(genAlgCalcStr);
+
+        std::cout << "- providing previous calculation results from file " << genAlgCalcFile << std::endl;
+    }
+
     nlohmann::json& generatedNets = settings["generated nets"];
     generatedNets["random value +- range"] = 20;
     generatedNets["initial amount"] = 20;
@@ -59,6 +73,7 @@ bool TestCharSymbol()
     nlohmann::json& fitnessFunction = settings["fitness function calculation"];
     fitnessFunction["function name"] = "TestCheck";
     fitnessFunction["reject level"] = testDatasAmount / 2;
+    fitnessFunction["save level"] = testDatasAmount * 2;
     fitnessFunction["stop level"] = testDatasAmount * 2 + ukrAll.size();
     fitnessFunction["source code"] = R"(
 (__global const TData* outputs, __global const TData* testData, const TOffset datasetsAmount)
@@ -131,9 +146,9 @@ bool TestCharSymbol()
 };)";
 */
     auto geneticAlg = genetic_algorithm::make(annStr, testDatas, settings);
-//    auto lastState = artificial_neural_network::genetic_algorithm::status::unknown;
     artificial_neural_network::fitness_funct_type lastFitnessFunction = std::numeric_limits<artificial_neural_network::fitness_funct_type>::min();
-//    size_t lastIteration = 0;
+    bool firstCalcResultsFileSaving = true;
+
     std::cout << "- initializing... " << std::endl;
 
     while (geneticAlg->current_status() != genetic_algorithm::status::got_result)
@@ -148,6 +163,19 @@ bool TestCharSymbol()
         {
             lastFitnessFunction = geneticAlg->best_fitness_function();
             std::cout << "- fitness value (ideal / best / reject) = " << fitnessFunction["stop level"].get<artificial_neural_network::fitness_funct_type>() << " / " << lastFitnessFunction << " / " << fitnessFunction["reject level"].get<artificial_neural_network::fitness_funct_type>() << ", iteration " << geneticAlg->iteration() << std::endl;
+
+            if (geneticAlg->has_calculation_result())
+            {
+                std::ofstream exportResultFile(genAlgCalcFile);
+                assert(exportResultFile.is_open());
+                exportResultFile << geneticAlg->export_calculation_result().dump(4);
+            }
+
+            if (firstCalcResultsFileSaving)
+            {
+                firstCalcResultsFileSaving = false;
+                std::cout << "- start saving calculation results to file " << genAlgCalcFile << std::endl;
+            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds{ 333 });
     }
@@ -160,5 +188,5 @@ bool TestCharSymbol()
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
 {
-    return TestCharSymbol() ? 0 : -1;
+    return TestCharSymbol(argc == 1 ? std::filesystem::temp_directory_path() / "export_genetic_alg_net_calc.json" : argv[1]) ? 0 : -1;
 }

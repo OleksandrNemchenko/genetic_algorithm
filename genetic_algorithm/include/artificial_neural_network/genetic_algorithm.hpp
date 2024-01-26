@@ -31,6 +31,8 @@ public:
 
     virtual bool start_calculations() noexcept = 0;
     virtual void stop_calculations() noexcept = 0;
+    virtual nlohmann::json export_calculation_result() noexcept = 0;
+    virtual bool has_calculation_result() noexcept = 0;
 
     virtual status current_status() const noexcept = 0;
     virtual const std::string& last_error() const noexcept = 0;

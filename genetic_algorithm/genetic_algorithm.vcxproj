@@ -25,7 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="calcGeneticAlgorithm.cpp" />
-    <ClCompile Include="initGeneticAlgorithm.cpp" />
+    <ClCompile Include="geneticAlgorithm.cpp" />
     <ClCompile Include="kernel\bitonicSortSrc.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>

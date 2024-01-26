@@ -3,6 +3,7 @@
 #define _AI_GENETIC_ALGORITHM_IMPL_HPP
 
 #include <memory>
+#include <mutex>
 
 #define CL_HPP_TARGET_OPENCL_VERSION 300
 #define CL_HPP_ENABLE_EXCEPTIONS
@@ -29,6 +30,8 @@ public:
 
     bool start_calculations() noexcept override;
     void stop_calculations() noexcept override { _toStop = true; }
+    nlohmann::json export_calculation_result() noexcept override;
+    bool has_calculation_result() noexcept override;
 
     status current_status() const noexcept override { return _status; }
     const std::string& last_error() const noexcept override { return _lastError; }
@@ -53,7 +56,7 @@ private:
         0;
 #endif // TEST_GENETIC_ALGORITHM
 
-    const CNetStructureImpl& _netStructure;
+    std::unique_ptr<CNetStructureImpl> _netStructure;
     const test_datas _testDatas;
     const nlohmann::json& _settings;
     std::atomic<status> _status;
@@ -76,10 +79,11 @@ private:
     std::vector<TFitnessFunctOrder> _fitnessFunctOrder;
 
     fitness_funct_type _rejectFitnessFunctionLevel;
+    fitness_funct_type _saveFitnessFunctionLevel;
     fitness_funct_type _stopFitnessFunctionLevel;
     bool _allRandomNets;
 
-    const std::vector<CNetStructureImpl::SNeuron>& _neurons;
+    std::vector<CNetStructureImpl::SNeuron> _neurons;
     cl::Buffer _neuronsCl;
 
     std::vector<TRndData> _randomBufferState;
@@ -94,7 +98,7 @@ private:
     TDatas _inputs;
     cl::Buffer _inputsCl;
 
-    const TOffsets& _inputsOffs;
+    TOffsets _inputsOffs;
     cl::Buffer _inputsOffsCl;
 
     TDatas _outputs;
@@ -159,6 +163,9 @@ private:
     size_t _netConfigsBytes;
     size_t _allNetsConfigsBytes;
 
+    std::mutex _configsToBeExportedMutex;
+    std::vector<TDatas> _configsToBeExported;
+
     void Init(bool startCalculationsAutomatically);
     void CheckData();
     size_t GlobalMemoryBytesRequirement();
@@ -169,6 +176,7 @@ private:
     void InitCalculations();
     void StartCalculations();
     bool CalcIteration();
+    void InitState();
 
     void Phase1_RandomizeAll();
     void Phase1_Randomizing();
@@ -179,6 +187,7 @@ private:
     void Phase6_CalcFitnessFunct();
     void Phase7_SortNets();
     void Phase8_PrepareNets();
+    void ExportGoodNetConfigs();
 
     template<typename T>
     void InitBuffer(T& vector, cl::Buffer& buffer, size_t size, bool readOnly, bool useHostPtr);
