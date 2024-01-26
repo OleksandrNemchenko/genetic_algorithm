@@ -1,5 +1,6 @@
 ﻿
 #include <bitset>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -151,6 +152,15 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
 
     std::cout << "- initializing... " << std::endl;
 
+    std::chrono::steady_clock::time_point previousReport;
+    static const std::chrono::seconds reportTimeout{ 10 };
+
+    auto updateReportTimepoint = [&previousReport]()
+    {
+        previousReport = std::chrono::steady_clock::now();
+    };
+    updateReportTimepoint();
+
     while (geneticAlg->current_status() != genetic_algorithm::status::got_result)
     {
         if (geneticAlg->current_status() == genetic_algorithm::status::init_error || geneticAlg->current_status() == genetic_algorithm::status::calc_error)
@@ -176,7 +186,17 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
                 firstCalcResultsFileSaving = false;
                 std::cout << "- start saving calculation results to file " << genAlgCalcFile << std::endl;
             }
+
+            updateReportTimepoint();
+
         }
+
+        if (std::chrono::steady_clock::now() - previousReport > reportTimeout)
+        {
+            std::cout << "- iteration " << geneticAlg->iteration() << std::endl;
+            updateReportTimepoint();
+        }
+
         std::this_thread::sleep_for(std::chrono::milliseconds{ 333 });
     }
     
