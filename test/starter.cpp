@@ -30,10 +30,10 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
         ukrBig.emplace(smb);
     }
 
+    using af = artificial_neural_network::net_structure::EActivationFunction;
     annStr->AddP2PNeuronsLayer();
     annStr->AddFullyConnectedNeuronsLayer();
     annStr->AddFullyConnectedNeuronsLayer();
-    annStr->AddFullyConnectedNeuronsLayer(outsAmount);
     annStr->AddOutputLayer();
 
     genetic_algorithm::test_datas testDatas;
@@ -64,8 +64,8 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
     }
 
     nlohmann::json& generatedNets = settings["generated nets"];
-    generatedNets["random value +- range"] = 20;
-    generatedNets["initial amount"] = 20;
+    generatedNets["random value +- range"] = 2;
+    generatedNets["initial amount"] = 30;
     generatedNets["initial random"] = 0.5;
     generatedNets["initial worst"] = 0.1;
     generatedNets["crossingover brothers"] = 10;
@@ -153,7 +153,7 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
     std::cout << "- initializing... " << std::endl;
 
     std::chrono::steady_clock::time_point previousReport;
-    static const std::chrono::seconds reportTimeout{ 10 };
+    static const std::chrono::seconds reportTimeout{ 30 };
 
     auto updateReportTimepoint = [&previousReport]()
     {
@@ -169,7 +169,8 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
             break;
         }
 
-        if (geneticAlg->current_status() != genetic_algorithm::status::algorithm_init && lastFitnessFunction != geneticAlg->best_fitness_function())
+        if (std::chrono::steady_clock::now() - previousReport > reportTimeout || 
+            geneticAlg->current_status() != genetic_algorithm::status::algorithm_init && lastFitnessFunction != geneticAlg->best_fitness_function())
         {
             lastFitnessFunction = geneticAlg->best_fitness_function();
             std::cout << "- fitness value (ideal / best / reject) = " << fitnessFunction["stop level"].get<artificial_neural_network::fitness_funct_type>() << " / " << lastFitnessFunction << " / " << fitnessFunction["reject level"].get<artificial_neural_network::fitness_funct_type>() << ", iteration " << geneticAlg->iteration() << std::endl;
@@ -189,12 +190,6 @@ bool TestCharSymbol(const std::filesystem::path& genAlgCalcFile)
 
             updateReportTimepoint();
 
-        }
-
-        if (std::chrono::steady_clock::now() - previousReport > reportTimeout)
-        {
-            std::cout << "- iteration " << geneticAlg->iteration() << std::endl;
-            updateReportTimepoint();
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds{ 333 });
